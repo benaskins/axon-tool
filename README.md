@@ -1,6 +1,6 @@
 # axon-tool
 
-Primitives for defining and executing tools that can be used by LLM-powered agents.
+Primitives for defining and executing tools that can be used by LLM-powered agents. Part of [lamina](https://github.com/benaskins/lamina) — each axon package can be used independently.
 
 Provider-agnostic — no dependency on any specific LLM backend.
 
