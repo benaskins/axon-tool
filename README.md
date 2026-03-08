@@ -1,10 +1,10 @@
 # axon-tool
 
-Primitives for defining and executing tools that can be used by LLM-powered agents. Part of [lamina](https://github.com/benaskins/lamina) — each axon package can be used independently.
+> Primitives · Part of the [lamina](https://github.com/benaskins/lamina-mono) workspace
 
-Provider-agnostic — no dependency on any specific LLM backend.
+Tool definition and execution primitives for LLM agents. axon-tool provides a provider-agnostic way to declare tools with typed parameter schemas and execute them within a request-scoped context. It ships with a handful of built-in tools (current time, web search, page fetch, weather) but the core value is the `ToolDef` / `ToolResult` contract that any agent framework can build on.
 
-## Install
+## Getting started
 
 ```
 go get github.com/benaskins/axon-tool@latest
@@ -12,33 +12,49 @@ go get github.com/benaskins/axon-tool@latest
 
 Requires Go 1.24+.
 
-## Usage
-
 ```go
-tools := map[string]tool.ToolDef{
-    "current_time":  tool.CurrentTimeTool(),
-    "web_search":    tool.WebSearchTool(searcher),
-    "fetch_page":    tool.FetchPageTool(fetcher),
-    "check_weather": tool.CheckWeatherTool(weatherProvider),
+package main
+
+import (
+	"context"
+	"fmt"
+
+	tool "github.com/benaskins/axon-tool"
+)
+
+func main() {
+	greet := tool.ToolDef{
+		Name:        "greet",
+		Description: "Greet someone by name.",
+		Parameters: tool.ParameterSchema{
+			Type:     "object",
+			Required: []string{"name"},
+			Properties: map[string]tool.PropertySchema{
+				"name": {Type: "string", Description: "The person to greet."},
+			},
+		},
+		Execute: func(ctx *tool.ToolContext, args map[string]any) tool.ToolResult {
+			name, _ := args["name"].(string)
+			return tool.ToolResult{Content: fmt.Sprintf("Hello, %s!", name)}
+		},
+	}
+
+	tc := &tool.ToolContext{Ctx: context.Background()}
+	result := greet.Execute(tc, map[string]any{"name": "World"})
+	fmt.Println(result.Content)
 }
 ```
 
-### Key types
+See [`example/main.go`](example/main.go) for the runnable version.
 
-- `ToolDef` — tool definition with name, description, parameters, and execute function
-- `ToolResult` — execution result (text, images, errors)
-- `ToolContext` — request-scoped context (conversation ID, user ID)
-- `ParameterSchema` — JSON Schema for tool parameters
-- `Searcher`, `WeatherProvider` — integration interfaces
-- `PageFetcher` — rate-limited web page fetcher with content extraction
-- `ToolRouter` — LLM-based tool selection for routing requests
+## Key types
 
-### Built-in tools
-
-- `CurrentTimeTool()` — current date and time
-- `WebSearchTool()` — web search via SearXNG
-- `FetchPageTool()` — fetch and extract web page content
-- `CheckWeatherTool()` — weather via Open-Meteo
+- **`ToolDef`** — tool definition: name, description, parameter schema, and execute function
+- **`ToolResult`** — execution result containing text content
+- **`ToolContext`** — request-scoped context carrying user ID, agent slug, conversation ID
+- **`ParameterSchema`** / **`PropertySchema`** — JSON Schema for tool parameters
+- **`TextGenerator`** — function type for sending a prompt to an LLM and getting text back
+- **`ToolRouter`** — LLM-based tool selection for routing requests to the right tool
 
 ## License
 
