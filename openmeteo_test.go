@@ -334,6 +334,31 @@ func TestOpenMeteoClient_SelectsCorrectHourlyIndex(t *testing.T) {
 	}
 }
 
+func TestBestGeoMatch_EmptyResults(t *testing.T) {
+	_, ok := bestGeoMatch(nil, nil)
+	if ok {
+		t.Error("expected ok=false for empty results")
+	}
+	_, ok = bestGeoMatch([]geoResult{}, []string{"Australia"})
+	if ok {
+		t.Error("expected ok=false for empty results with qualifiers")
+	}
+}
+
+func TestBestGeoMatch_WithResults(t *testing.T) {
+	results := []geoResult{
+		{Name: "Gosford", Country: "United Kingdom"},
+		{Name: "Gosford", Country: "Australia", Admin1: "New South Wales"},
+	}
+	got, ok := bestGeoMatch(results, []string{"Australia"})
+	if !ok {
+		t.Fatal("expected ok=true")
+	}
+	if got.Country != "Australia" {
+		t.Errorf("expected Australia, got %s", got.Country)
+	}
+}
+
 func TestParseLocation(t *testing.T) {
 	tests := []struct {
 		input      string
