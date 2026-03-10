@@ -62,9 +62,12 @@ func parseLocation(location string) (string, []string) {
 // bestGeoMatch picks the geocoding result that best matches the qualifiers.
 // It scores each result by how many qualifiers match its country or admin1 field
 // (case-insensitive, substring). Falls back to the first result if no qualifiers match.
-func bestGeoMatch(results []geoResult, qualifiers []string) geoResult {
-	if len(qualifiers) == 0 || len(results) == 0 {
-		return results[0]
+func bestGeoMatch(results []geoResult, qualifiers []string) (geoResult, bool) {
+	if len(results) == 0 {
+		return geoResult{}, false
+	}
+	if len(qualifiers) == 0 {
+		return results[0], true
 	}
 
 	bestIdx := 0
@@ -83,7 +86,7 @@ func bestGeoMatch(results []geoResult, qualifiers []string) geoResult {
 			bestIdx = i
 		}
 	}
-	return results[bestIdx]
+	return results[bestIdx], true
 }
 
 // weatherAPIResponse is the JSON from Open-Meteo's weather API.
@@ -142,7 +145,10 @@ func (c *OpenMeteoClient) GetWeather(ctx context.Context, location string) (*Wea
 		return nil, fmt.Errorf("location not found: %s", location)
 	}
 
-	loc := bestGeoMatch(geo.Results, qualifiers)
+	loc, ok := bestGeoMatch(geo.Results, qualifiers)
+	if !ok {
+		return nil, fmt.Errorf("location not found: %s", location)
+	}
 
 	// Step 2: Fetch weather
 	wxURL, err := url.Parse(c.weatherURL)

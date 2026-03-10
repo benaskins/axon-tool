@@ -11,6 +11,14 @@ import (
 	"unicode/utf8"
 )
 
+// newTestPageFetcher creates a PageFetcher that skips SSRF host validation,
+// allowing tests to hit httptest servers on 127.0.0.1.
+func newTestPageFetcher(gen TextGenerator) *PageFetcher {
+	pf := NewPageFetcher(gen)
+	pf.hostChecker = func(string) error { return nil }
+	return pf
+}
+
 const testHTML = `<!DOCTYPE html>
 <html>
 <head><title>Test Page</title></head>
@@ -33,7 +41,7 @@ func TestPageFetcher_FetchPage(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	pf := NewPageFetcher(nil)
+	pf := newTestPageFetcher(nil)
 	result, err := pf.FetchAndExtract(context.Background(), srv.URL, "test question")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -60,7 +68,7 @@ func TestPageFetcher_WithTextGenerator(t *testing.T) {
 		return "Extracted: relevant facts about technology", nil
 	}
 
-	pf := NewPageFetcher(generator)
+	pf := newTestPageFetcher(generator)
 	result, err := pf.FetchAndExtract(context.Background(), srv.URL, "technology")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -77,7 +85,7 @@ func TestPageFetcher_WithoutTextGenerator(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	pf := NewPageFetcher(nil)
+	pf := newTestPageFetcher(nil)
 	result, err := pf.FetchAndExtract(context.Background(), srv.URL, "anything")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -96,7 +104,7 @@ func TestPageFetcher_RateLimiting(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	pf := NewPageFetcher(nil)
+	pf := newTestPageFetcher(nil)
 
 	// First fetch — should be immediate
 	start := time.Now()
@@ -136,7 +144,7 @@ func TestPageFetcher_NonHTMLContentType(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	pf := NewPageFetcher(nil)
+	pf := newTestPageFetcher(nil)
 	_, err := pf.FetchAndExtract(context.Background(), srv.URL, "question")
 	if err == nil {
 		t.Fatal("expected error for non-HTML content type")
@@ -147,7 +155,7 @@ func TestPageFetcher_NonHTMLContentType(t *testing.T) {
 }
 
 func TestPageFetcher_InvalidURL(t *testing.T) {
-	pf := NewPageFetcher(nil)
+	pf := newTestPageFetcher(nil)
 	_, err := pf.FetchAndExtract(context.Background(), "ftp://example.com", "question")
 	if err == nil {
 		t.Fatal("expected error for unsupported scheme")
@@ -161,7 +169,7 @@ func TestPageFetcher_ConcurrentAccess(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	pf := NewPageFetcher(nil)
+	pf := newTestPageFetcher(nil)
 
 	// Run concurrent fetches to exercise the mutex on lastFetch.
 	errs := make(chan error, 3)
@@ -202,5 +210,40 @@ func TestTruncateRuneSafe(t *testing.T) {
 	// 50 / 3 = 16 full 3-byte chars = 48 bytes
 	if len(text) != 48 {
 		t.Errorf("expected 48 bytes after rune-safe truncation, got %d", len(text))
+	}
+}
+
+func TestPageFetcher_SSRFBlocksPrivateIPs(t *testing.T) {
+	tests := []struct {
+		name string
+		url  string
+	}{
+		{"localhost", "http://127.0.0.1/page"},
+		{"10.x private", "http://10.0.0.1/page"},
+		{"172.16 private", "http://172.16.0.1/page"},
+		{"192.168 private", "http://192.168.1.1/page"},
+		{"link-local", "http://169.254.169.254/latest/meta-data/"},
+		{"ipv6 loopback", "http://[::1]/page"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pf := NewPageFetcher(nil)
+			_, err := pf.FetchAndExtract(context.Background(), tt.url, "test")
+			if err == nil {
+				t.Fatalf("expected SSRF error for %s, got nil", tt.url)
+			}
+			if !strings.Contains(err.Error(), "private IP") {
+				t.Errorf("expected private IP error, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestPageFetcher_SSRFAllowsPublicIPs(t *testing.T) {
+	// Validate that the host checker itself allows a public IP.
+	pf := NewPageFetcher(nil)
+	err := pf.hostChecker("93.184.216.34") // example.com IP
+	if err != nil {
+		t.Errorf("expected public IP to be allowed, got: %v", err)
 	}
 }
