@@ -247,3 +247,29 @@ func TestPageFetcher_SSRFAllowsPublicIPs(t *testing.T) {
 		t.Errorf("expected public IP to be allowed, got: %v", err)
 	}
 }
+
+func TestPageFetcher_WithHTTPClient(t *testing.T) {
+	called := false
+	customClient := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			called = true
+			return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+		}),
+	}
+
+	pf := NewPageFetcher(nil, WithHTTPClient(customClient))
+	pf.hostChecker = func(string) error { return nil }
+
+	// Will fail on HTML parsing but the custom client should be called
+	pf.FetchAndExtract(context.Background(), "https://example.com", "")
+
+	if !called {
+		t.Error("custom HTTP client was not used")
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}

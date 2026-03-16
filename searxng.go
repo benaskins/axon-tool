@@ -19,12 +19,24 @@ type SearXNGClient struct {
 	httpClient *http.Client
 }
 
+// SearXNGOption configures a SearXNGClient.
+type SearXNGOption func(*SearXNGClient)
+
+// WithSearXNGHTTPClient sets a custom http.Client for the SearXNG client.
+func WithSearXNGHTTPClient(c *http.Client) SearXNGOption {
+	return func(s *SearXNGClient) { s.httpClient = c }
+}
+
 // NewSearXNGClient creates a client pointing at a SearXNG instance.
-func NewSearXNGClient(baseURL string) *SearXNGClient {
-	return &SearXNGClient{
+func NewSearXNGClient(baseURL string, opts ...SearXNGOption) *SearXNGClient {
+	s := &SearXNGClient{
 		baseURL:    baseURL,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // searxngResult is a single result in the SearXNG JSON response.

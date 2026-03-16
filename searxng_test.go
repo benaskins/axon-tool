@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestSearXNGClient_ParsesResponse(t *testing.T) {
@@ -127,4 +128,25 @@ func TestSearXNGClient_TrailingSlashInBaseURL(t *testing.T) {
 
 func TestSearXNGClient_ImplementsSearcher(t *testing.T) {
 	var _ Searcher = (*SearXNGClient)(nil)
+}
+
+func TestSearXNGClient_WithHTTPClient(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(searxngResponse{
+			Results: []searxngResult{{Title: "Test", URL: "https://example.com", Content: "test"}},
+		})
+	}))
+	defer srv.Close()
+
+	customClient := &http.Client{Timeout: 5 * time.Second}
+	client := NewSearXNGClient(srv.URL, WithSearXNGHTTPClient(customClient))
+
+	results, err := client.Search(context.Background(), "test", 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("got %d results, want 1", len(results))
+	}
 }

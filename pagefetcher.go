@@ -101,16 +101,28 @@ type PageFetcher struct {
 	hostChecker  func(string) error // overridable for testing; defaults to validateHost
 }
 
+// PageFetcherOption configures a PageFetcher.
+type PageFetcherOption func(*PageFetcher)
+
+// WithHTTPClient sets a custom http.Client for the page fetcher.
+func WithHTTPClient(c *http.Client) PageFetcherOption {
+	return func(pf *PageFetcher) { pf.client = c }
+}
+
 // NewPageFetcher creates a page fetcher. If generate is non-nil it will be
 // used to extract relevant content from fetched pages via an LLM.
-func NewPageFetcher(generate TextGenerator) *PageFetcher {
-	return &PageFetcher{
+func NewPageFetcher(generate TextGenerator, opts ...PageFetcherOption) *PageFetcher {
+	pf := &PageFetcher{
 		client: &http.Client{
 			Timeout: fetchTimeout,
 		},
 		generate:    generate,
 		hostChecker: validateHost,
 	}
+	for _, opt := range opts {
+		opt(pf)
+	}
+	return pf
 }
 
 // FetchAndExtract fetches a URL, extracts readable content, and optionally
