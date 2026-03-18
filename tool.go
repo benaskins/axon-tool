@@ -32,10 +32,15 @@ type ParameterSchema struct {
 	Properties map[string]PropertySchema `json:"properties,omitempty"`
 }
 
-// PropertySchema describes a single parameter property.
+// PropertySchema describes a single parameter property using JSON Schema.
 type PropertySchema struct {
-	Type        string `json:"type"`
-	Description string `json:"description,omitempty"`
+	Type        string                    `json:"type"`
+	Description string                    `json:"description,omitempty"`
+	Enum        []any                     `json:"enum,omitempty"`
+	Default     any                       `json:"default,omitempty"`
+	Items       *PropertySchema           `json:"items,omitempty"`
+	Properties  map[string]PropertySchema `json:"properties,omitempty"`
+	Required    []string                  `json:"required,omitempty"`
 }
 
 // TextGenerator is a simple function that sends a prompt to an LLM
