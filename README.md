@@ -54,7 +54,6 @@ See [`example/main.go`](example/main.go) for the runnable version.
 - **`ToolContext`** — request-scoped context carrying user ID, agent slug, conversation ID
 - **`ParameterSchema`** / **`PropertySchema`** — JSON Schema for tool parameters
 - **`TextGenerator`** — function type for sending a prompt to an LLM and getting text back
-- **`ToolRouter`** — LLM-based tool selection for routing requests to the right tool
 
 ## License
 
