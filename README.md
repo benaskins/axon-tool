@@ -10,7 +10,7 @@ Tool definition and execution primitives for LLM agents. axon-tool provides a pr
 go get github.com/benaskins/axon-tool@latest
 ```
 
-Requires Go 1.24+.
+Requires Go 1.26+.
 
 ```go
 package main
@@ -54,6 +54,13 @@ See [`example/main.go`](example/main.go) for the runnable version.
 - **`ToolContext`** — request-scoped context carrying user ID, agent slug, conversation ID
 - **`ParameterSchema`** / **`PropertySchema`** — JSON Schema for tool parameters
 - **`TextGenerator`** — function type for sending a prompt to an LLM and getting text back
+- **`Searcher`** — interface for web search functionality
+- **`WeatherProvider`** — interface for weather lookup functionality
+- **`PageFetcher`** — handles fetching web pages and extracting content
+- **`SearXNGClient`** — client for SearXNG search instances
+- **`OpenMeteoClient`** — weather client using Open-Meteo API
+- **`SearchQualifier`** — uses LLM to refine search queries
+- **`SearchResult`** / **`WeatherResult`** — structured results from search and weather APIs
 
 ## License
 
