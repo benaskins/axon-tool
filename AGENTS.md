@@ -1,3 +1,8 @@
+---
+module: github.com/benaskins/axon-tool
+kind: library
+---
+
 # axon-tool
 
 Tool definition and execution primitives for LLM agents.
