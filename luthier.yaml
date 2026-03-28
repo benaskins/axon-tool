@@ -1,0 +1,12 @@
+name: axon-tool
+purpose: Tool definitions and execution for LLM agents
+use_when: Agent tool use
+deterministic: true
+snippet:
+  imports:
+    - path: github.com/benaskins/axon-tool
+      alias: tool
+  requires:
+    - github.com/benaskins/axon-tool
+  setup: |
+    allTools := map[string]tool.ToolDef{}
