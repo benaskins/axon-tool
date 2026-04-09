@@ -65,12 +65,43 @@ func TestToolCallMatcher_MarkdownFenced(t *testing.T) {
 	}
 }
 
+func TestToolCallMatcher_MultipleToolsInArray(t *testing.T) {
+	m := NewToolCallMatcher()
+	buf := []byte(`[{"name": "web_search", "arguments": {"query": "go"}}, {"name": "current_time", "arguments": {}}]`)
+
+	if r := m.Scan(buf, ""); r != tape.FullMatch {
+		t.Fatalf("expected FullMatch, got %v", r)
+	}
+
+	action := m.Extract(buf)
+	tc, ok := action.(ToolCallAction)
+	if !ok {
+		t.Fatalf("expected ToolCallAction, got %T", action)
+	}
+	if len(tc.Calls) != 2 {
+		t.Fatalf("expected 2 calls, got %d", len(tc.Calls))
+	}
+	if tc.Calls[0].Name != "web_search" {
+		t.Errorf("first call = %q, want web_search", tc.Calls[0].Name)
+	}
+	if tc.Calls[1].Name != "current_time" {
+		t.Errorf("second call = %q, want current_time", tc.Calls[1].Name)
+	}
+}
+
 func TestToolCallMatcher_PartialJSON(t *testing.T) {
 	m := NewToolCallMatcher()
 	buf := []byte(`{"name": "web_search", "arguments": {"query": "go`)
 
 	if r := m.Scan(buf, ""); r != tape.PartialMatch {
 		t.Errorf("expected PartialMatch for incomplete JSON, got %v", r)
+	}
+}
+
+func TestToolCallMatcher_Name(t *testing.T) {
+	m := NewToolCallMatcher()
+	if m.Name() != "tool_call" {
+		t.Errorf("expected 'tool_call', got %q", m.Name())
 	}
 }
 
