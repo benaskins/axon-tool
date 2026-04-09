@@ -97,3 +97,70 @@ func TestNormalizeArguments_IntegerType(t *testing.T) {
 		t.Errorf("count = %v (%T), want 5 (float64)", got["count"], got["count"])
 	}
 }
+
+func TestTypesFromSchema(t *testing.T) {
+	schema := ParameterSchema{
+		Type: "object",
+		Properties: map[string]PropertySchema{
+			"query": {Type: "string", Description: "Search query"},
+			"limit": {Type: "integer", Description: "Max results"},
+		},
+	}
+
+	types := TypesFromSchema(schema)
+	if types["query"] != "string" {
+		t.Errorf("query type = %q, want string", types["query"])
+	}
+	if types["limit"] != "integer" {
+		t.Errorf("limit type = %q, want integer", types["limit"])
+	}
+}
+
+func TestNormalizeArguments_BoolPassthrough(t *testing.T) {
+	args := map[string]any{"flag": true}
+	types := map[string]string{"flag": "boolean"}
+	got := NormalizeArguments(args, types)
+
+	if v, ok := got["flag"].(bool); !ok || !v {
+		t.Errorf("flag = %v (%T), want true (bool)", got["flag"], got["flag"])
+	}
+}
+
+func TestNormalizeArguments_NumberPassthrough(t *testing.T) {
+	args := map[string]any{"x": float64(42)}
+	types := map[string]string{"x": "number"}
+	got := NormalizeArguments(args, types)
+
+	if v, ok := got["x"].(float64); !ok || v != 42 {
+		t.Errorf("x = %v (%T), want 42 (float64)", got["x"], got["x"])
+	}
+}
+
+func TestNormalizeArguments_ArrayPassthrough(t *testing.T) {
+	arr := []any{1, 2, 3}
+	args := map[string]any{"items": arr}
+	types := map[string]string{"items": "array"}
+	got := NormalizeArguments(args, types)
+
+	if _, ok := got["items"].([]any); !ok {
+		t.Errorf("items = %T, want []any", got["items"])
+	}
+}
+
+func TestNormalizeArguments_ObjectPassthrough(t *testing.T) {
+	obj := map[string]any{"key": "value"}
+	args := map[string]any{"config": obj}
+	types := map[string]string{"config": "object"}
+	got := NormalizeArguments(args, types)
+
+	if _, ok := got["config"].(map[string]any); !ok {
+		t.Errorf("config = %T, want map[string]any", got["config"])
+	}
+}
+
+func TestTypesFromSchema_Empty(t *testing.T) {
+	types := TypesFromSchema(ParameterSchema{Type: "object"})
+	if types != nil {
+		t.Errorf("expected nil for empty properties, got %v", types)
+	}
+}
