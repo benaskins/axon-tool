@@ -43,6 +43,17 @@ type PropertySchema struct {
 	Required    []string                  `json:"required,omitempty"`
 }
 
+// HasRequiredParam reports whether the tool's parameter schema
+// lists the given parameter name as required.
+func (d ToolDef) HasRequiredParam(name string) bool {
+	for _, r := range d.Parameters.Required {
+		if r == name {
+			return true
+		}
+	}
+	return false
+}
+
 // TextGenerator is a simple function that sends a prompt to an LLM
 // and returns the response text. Used by components that need LLM
 // capabilities without depending on a full ChatClient.

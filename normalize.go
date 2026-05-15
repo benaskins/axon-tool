@@ -6,6 +6,21 @@ import (
 	"strconv"
 )
 
+// TypesFromSchema extracts a property-name-to-type map from a
+// ParameterSchema, suitable for passing to NormalizeArguments.
+func TypesFromSchema(s ParameterSchema) map[string]string {
+	if len(s.Properties) == 0 {
+		return nil
+	}
+	types := make(map[string]string, len(s.Properties))
+	for name, prop := range s.Properties {
+		if prop.Type != "" {
+			types[name] = prop.Type
+		}
+	}
+	return types
+}
+
 // NormalizeArguments coerces tool call argument values to match the
 // JSON Schema types declared in the tool's parameter schema. LLMs
 // sometimes return numbers as strings, bools as strings, etc.

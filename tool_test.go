@@ -47,6 +47,27 @@ func TestToolContextCarriesMetadata(t *testing.T) {
 	}
 }
 
+func TestHasRequiredParam(t *testing.T) {
+	def := tool.ToolDef{
+		Name:        "search",
+		Description: "Search",
+		Parameters: tool.ParameterSchema{
+			Type:     "object",
+			Required: []string{"query", "limit"},
+		},
+	}
+
+	if !def.HasRequiredParam("query") {
+		t.Error("expected query to be required")
+	}
+	if !def.HasRequiredParam("limit") {
+		t.Error("expected limit to be required")
+	}
+	if def.HasRequiredParam("offset") {
+		t.Error("expected offset to not be required")
+	}
+}
+
 func TestToolDefWithParameters(t *testing.T) {
 	params := tool.ParameterSchema{
 		Type:     "object",
